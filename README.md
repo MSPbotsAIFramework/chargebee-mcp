@@ -127,14 +127,14 @@ Copy `.env.example` to `.env` and fill in your values:
 
 Get your API key: Chargebee Billing → Settings → Configure Chargebee → API Keys and Webhooks → API Keys tab.
 
-## HEADER 授权参数说明
+## HEADER Authentication Parameters
 
-Gateway 模式下，每个请求必须携带以下两个 HTTP Header：
+In Gateway mode, every request must carry the following two HTTP Headers:
 
-| Header | 类型 | 是否必填 | 默认值 | 枚举值 | 字段描述 | Example |
+| Header | Type | Required | Default | Allowed values | Description | Example |
 |---|---|---|---|---|---|---|
-| `X-Chargebee-Site` | string | 是 | 无 | 无 | Chargebee site 名称（即 `https://{site}.chargebee.com` 里的子域名部分） | `acme-test` |
-| `X-Chargebee-Api-Key` | string | 是 | 无 | 无 | Chargebee API Key（Settings → Configure Chargebee → API Keys and Webhooks 页面生成），本服务用其作为 HTTP Basic Auth 的用户名、密码留空 | `test_XXXXXXXXXXXXXXXXXXXXXXXXXXXXX` |
+| `X-Chargebee-Site` | string | Yes | None | None | Chargebee site name (i.e. the subdomain part of `https://{site}.chargebee.com`) | `acme-test` |
+| `X-Chargebee-Api-Key` | string | Yes | None | None | Chargebee API Key (generated on the Settings → Configure Chargebee → API Keys and Webhooks page); this service uses it as the HTTP Basic Auth username with the password left empty | `test_XXXXXXXXXXXXXXXXXXXXXXXXXXXXX` |
 
 ## Claude Desktop Setup
 
