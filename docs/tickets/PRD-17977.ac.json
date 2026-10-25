@@ -2,153 +2,177 @@
   {
     "id": "TC-CBM-001",
     "ac": "AC1",
-    "text": "Given 首页结果超过 100 条, When 把响应里的 page_cursor 传回 offset 再次调用, Then 不再报参数校验错误、不再被 Chargebee 拒绝，返回紧接首页之后的数据",
+    "text": "Given the first page has more than 100 results, When page_cursor from the response is passed back to offset and the tool is called again, Then there is no parameter validation error, no rejection by Chargebee, and the data immediately following the first page is returned",
     "type": "auto",
-    "tests": ["tests/test_pagination.py::test_page_cursor_round_trip_gets_page_two"],
+    "tests": [
+      "tests/test_pagination.py::test_page_cursor_round_trip_gets_page_two"
+    ],
     "result": "pass",
-    "notes": "red->green：改前用真实 offset:str|None 签名跑同一断言会在 Pydantic 校验阶段直接拒绝；改后 28/28 通过（见 docs/tickets/PRD-17977.md 自测节）"
+    "notes": "red->green: before the change, running the same assertion against the real offset:str|None signature is rejected outright at the Pydantic validation stage; after the change 28/28 pass (see the self-test section of docs/tickets/PRD-17977.md)"
   },
   {
     "id": "TC-CBM-002",
     "ac": "AC1",
-    "text": "Given 同上场景, When 改用响应里原始 next_offset（而不是 page_cursor）传回 offset, Then 同样成功——向后兼容路径",
+    "text": "Given the same scenario, When the raw next_offset from the response (instead of page_cursor) is passed back to offset, Then it likewise succeeds - the backward-compatible path",
     "type": "auto",
-    "tests": ["tests/test_pagination.py::test_raw_next_offset_passed_back_also_works"],
+    "tests": [
+      "tests/test_pagination.py::test_raw_next_offset_passed_back_also_works"
+    ],
     "result": "pass",
-    "notes": "验证原始 next_offset（2 元素数组）经 MCP 预解析后按 list[str] 直接透传给 Chargebee 仍可用"
+    "notes": "Verifies that the raw next_offset (a 2-element array), after MCP pre-parsing, is passed through directly to Chargebee as list[str] and still works"
   },
   {
     "id": "TC-CBM-003",
     "ac": "AC2",
-    "text": "Given 结果集恰好是页大小整数倍且还有更多数据, When 连续翻页直到某次响应无游标, Then 累计取到的行数与总数一致、无重复无遗漏",
+    "text": "Given the result set is exactly an integer multiple of the page size and more data remains, When pages are turned consecutively until a response has no cursor, Then the accumulated row count matches the total, with no duplicates and no omissions",
     "type": "auto",
-    "tests": ["tests/test_pagination.py::test_consecutive_pages_cover_full_set_no_gaps_no_dupes"],
+    "tests": [
+      "tests/test_pagination.py::test_consecutive_pages_cover_full_set_no_gaps_no_dupes"
+    ],
     "result": "pass",
-    "notes": "3 页共 5 行，逐页用上一页的 page_cursor 驱动，累计结果与预期顺序完全一致"
+    "notes": "3 pages with 5 rows in total, driven page by page with the previous page's page_cursor; the accumulated result matches the expected order exactly"
   },
   {
     "id": "TC-CBM-004",
     "ac": "AC3",
-    "text": "Given 结果集不超过 100 条, When 调用工具, Then 响应体不含 page_cursor / next_offset",
+    "text": "Given the result set does not exceed 100 rows, When the tool is called, Then the response body contains no page_cursor / next_offset",
     "type": "auto",
-    "tests": ["tests/test_pagination.py::test_single_page_has_no_cursor_fields"],
+    "tests": [
+      "tests/test_pagination.py::test_single_page_has_no_cursor_fields"
+    ],
     "result": "pass",
-    "notes": "Chargebee 未返回 next_offset 时不会新造一个游标字段"
+    "notes": "When Chargebee returns no next_offset, no cursor field is invented"
   },
   {
     "id": "TC-CBM-005",
     "ac": "AC4",
-    "text": "Given mock 一页数据使序列化结果超过 20000 字符, When 调用工具, Then 触发二次请求，返回的游标对应二次请求的 limit，不是裁剪前的游标",
+    "text": "Given a mocked page whose serialized result exceeds 20000 characters, When the tool is called, Then a second request is triggered, and the returned cursor corresponds to the limit of the second request, not the cursor from before truncation",
     "type": "auto",
-    "tests": ["tests/test_pagination.py::test_oversized_page_triggers_refetch_with_matching_cursor"],
+    "tests": [
+      "tests/test_pagination.py::test_oversized_page_triggers_refetch_with_matching_cursor"
+    ],
     "result": "pass",
-    "notes": "red->green 关键用例：改前会直接返回本地切片+原游标（游标与实际返回行不一致）；改后二次请求 limit 从 40 降到 fit_count 算出的安全值，返回的 next_offset 是二次请求自己的游标"
+    "notes": "Key red->green case: before the change it directly returned a local slice plus the original cursor (cursor inconsistent with the rows actually returned); after the change the limit of the second request drops from 40 to the safe value computed by fit_count, and the returned next_offset is the second request's own cursor"
   },
   {
     "id": "TC-CBM-006",
     "ac": "AC5",
-    "text": "Given offset 传入一个无法被识别/解码的字符串, When 调用工具, Then 返回结构化 invalid_argument 错误，不抛未捕获异常",
+    "text": "Given offset is passed an unrecognizable/undecodable string, When the tool is called, Then it returns a structured invalid_argument error without raising an uncaught exception",
     "type": "auto",
-    "tests": ["tests/test_pagination.py::test_garbage_offset_is_invalid_argument_not_a_crash"],
+    "tests": [
+      "tests/test_pagination.py::test_garbage_offset_is_invalid_argument_not_a_crash"
+    ],
     "result": "pass",
-    "notes": "断言未捕获异常不会冒出、且 Chargebee 从未被调用（fake_client.calls == []）"
+    "notes": "Asserts that no uncaught exception surfaces and that Chargebee was never called (fake_client.calls == [])"
   },
   {
     "id": "TC-CBM-007",
     "ac": "AC6",
-    "text": "Given 两个不同租户（不同 X-Chargebee-Site / X-Chargebee-Api-Key）各自的凭据, When 用租户 A 的游标发起调用, Then 只能取到租户 A 自己站点的数据，不能取到租户 B 的",
+    "text": "Given the credentials of two different tenants (different X-Chargebee-Site / X-Chargebee-Api-Key), When a call is made with tenant A's cursor, Then only tenant A's own site data can be fetched, not tenant B's",
     "type": "manual",
     "steps": [
-      "准备两个 Chargebee 测试站点的凭据（站点 A、站点 B）",
-      "对站点 A 调用 chargebee_list_subscriptions 拿到一页数据和 page_cursor",
-      "用站点 A 的 page_cursor，但把请求头换成站点 B 的 X-Chargebee-Site / X-Chargebee-Api-Key 再次调用",
-      "对比两次返回的数据所属站点"
+      "Prepare credentials for two Chargebee test sites (site A, site B)",
+      "Call chargebee_list_subscriptions against site A to get one page of data and a page_cursor",
+      "Call again with site A's page_cursor but with the request headers replaced by site B's X-Chargebee-Site / X-Chargebee-Api-Key",
+      "Compare which site the data returned by the two calls belongs to"
     ],
-    "expect": "第二次调用要么报错（游标与当前站点不匹配），要么返回的是站点 B 自己的数据——绝不能返回站点 A 的数据",
+    "expect": "The second call either errors (cursor does not match the current site) or returns site B's own data - it must never return site A's data",
     "result": "untested",
-    "notes": "需要两个 Chargebee 测试站点凭据，不能用生产 key；本机/本轮无该凭据，环境阻塞。TC-CBM-015 已用 fake client 覆盖了同等价值的结构性保证（游标不携带租户信息，client_factory 按当前请求上下文解析），但不能替代对 Chargebee 真实站点隔离行为的端到端验证"
+    "notes": "Needs credentials for two Chargebee test sites; a production key cannot be used; this machine/round does not have them, environment blocked. TC-CBM-015 already covers the structural guarantee of equal value with a fake client (the cursor carries no tenant information and client_factory resolves per the current request context), but it cannot replace end-to-end verification of Chargebee's real site isolation behavior"
   },
   {
     "id": "TC-CBM-008",
     "ac": "AC7",
-    "text": "Given 不传 offset 调用工具, When 检查响应体, Then 原始 next_offset 字段仍然存在且值不变（相对于本次改动前的行为）",
+    "text": "Given the tool is called without offset, When the response body is checked, Then the original next_offset field still exists and its value is unchanged (relative to the behavior before this change)",
     "type": "auto",
-    "tests": ["tests/test_pagination.py::test_original_next_offset_field_preserved"],
+    "tests": [
+      "tests/test_pagination.py::test_original_next_offset_field_preserved"
+    ],
     "result": "pass",
-    "notes": "同时验证新增 page_cursor 字段存在且格式正确"
+    "notes": "Also verifies that the newly added page_cursor field exists and has the correct format"
   },
   {
     "id": "TC-CBM-009",
     "ac": "AC8",
-    "text": "Given offset 传入空字符串, When 调用工具, Then 等价于不传，返回首页且不报错",
+    "text": "Given offset is passed an empty string, When the tool is called, Then it is equivalent to omitting it, returns the first page, and does not error",
     "type": "auto",
-    "tests": ["tests/test_pagination.py::test_empty_string_offset_is_first_page"],
+    "tests": [
+      "tests/test_pagination.py::test_empty_string_offset_is_first_page"
+    ],
     "result": "pass",
     "notes": ""
   },
   {
     "id": "TC-CBM-010",
     "ac": "AC8",
-    "text": "Given 完全不传 offset, When 调用工具, Then 返回首页且不报错",
+    "text": "Given offset is not passed at all, When the tool is called, Then it returns the first page and does not error",
     "type": "auto",
-    "tests": ["tests/test_pagination.py::test_omitted_offset_is_first_page"],
+    "tests": [
+      "tests/test_pagination.py::test_omitted_offset_is_first_page"
+    ],
     "result": "pass",
-    "notes": "与 TC-CBM-009 分别验证两种'未提供'的输入形态"
+    "notes": "Verified separately from TC-CBM-009 for the two 'not provided' input forms"
   },
   {
     "id": "TC-CBM-011",
     "ac": "AC9",
-    "text": "Given Chargebee 测试站点里存在超过 100 条订阅数据, When 端到端连续翻页, Then 从真实 Chargebee API 拿到完整数据集，不是靠 mock 断言通过",
+    "text": "Given the Chargebee test site has more than 100 subscriptions, When paging consecutively end to end, Then the complete data set is obtained from the real Chargebee API, rather than the assertion passing through mocks",
     "type": "manual",
     "steps": [
-      "准备一个 Chargebee 测试站点，确保订阅数量 > 100",
-      "用测试站点凭据调用 chargebee_list_subscriptions（limit=100，不传 offset）",
-      "拿到 page_cursor 后再次调用，重复直到无游标",
-      "统计累计条数与站点后台实际订阅总数对比"
+      "Prepare a Chargebee test site and make sure the number of subscriptions is > 100",
+      "Call chargebee_list_subscriptions with the test site credentials (limit=100, no offset)",
+      "After getting page_cursor, call again, and repeat until there is no cursor",
+      "Count the accumulated rows and compare with the actual total number of subscriptions in the site back office"
     ],
-    "expect": "累计条数与站点后台实际总数一致，过程中无报错",
+    "expect": "The accumulated count matches the actual total in the site back office, with no errors along the way",
     "result": "untested",
-    "notes": "需要 Chargebee 测试站点凭据且该站点需有 >100 条订阅数据，不能用生产 key；本轮环境无此凭据，环境阻塞，不算失败"
+    "notes": "Needs Chargebee test site credentials and the site needs >100 subscriptions; a production key cannot be used; this round's environment does not have the credentials, environment blocked, not counted as a failure"
   },
   {
     "id": "TC-CBM-012",
     "ac": "AC10",
-    "text": "Given 复现工单原始场景（Weekly MRR Movement，sopId 281，某个超过 100 行的周期）, When 智能体按新分页方式跑一遍, Then 拿到该周期完整数据，不再停在第 100 行",
+    "text": "Given the ticket's original scenario is reproduced (Weekly MRR Movement, sopId 281, a period with more than 100 rows), When the agent runs once in the new pagination way, Then it obtains the complete data of that period and no longer stops at row 100",
     "type": "manual",
     "steps": [
-      "在测试环境以只读 dry-run 方式重跑 Weekly MRR Movement 智能体（sopId 281），周期选一个已知 Chargebee 数据超过 100 行的周期",
-      "观察智能体对 chargebee_list_subscriptions/_list_invoices/_list_transactions 的调用轨迹与返回条数",
-      "核对最终产出的报告数据是否覆盖了完整周期，而不是只有前 100 行"
+      "In a test environment, re-run the Weekly MRR Movement agent (sopId 281) in read-only dry-run mode, choosing a period known to have more than 100 rows of Chargebee data",
+      "Observe the agent's call trace and returned row counts for chargebee_list_subscriptions/_list_invoices/_list_transactions",
+      "Check whether the final report data covers the complete period rather than only the first 100 rows"
     ],
-    "expect": "报告数据完整覆盖该周期全部行，智能体日志显示发生了不止一次分页调用且均未报错",
+    "expect": "The report data fully covers all rows of the period, and the agent log shows more than one paginated call, none of which errored",
     "result": "untested",
-    "notes": "端到端回归，需要测试环境+可复现的智能体运行条件；本轮无该环境，环境阻塞，不算失败"
+    "notes": "End-to-end regression; needs a test environment + reproducible agent run conditions; this round does not have that environment, environment blocked, not counted as a failure"
   },
   {
     "id": "TC-CBM-013",
     "ac": "AC5",
-    "text": "Given offset 传入一个合法 JSON 数组字符串但内容是随意编造的（不是任何工具签发过的值）, When 调用工具, Then 返回 invalid_argument，不会被误当成合法游标转发给 Chargebee",
+    "text": "Given offset is passed a valid JSON array string whose content is arbitrarily fabricated (not a value issued by any tool), When the tool is called, Then it returns invalid_argument and is not mistaken for a valid cursor and forwarded to Chargebee",
     "type": "auto",
-    "tests": ["tests/test_pagination.py::test_invented_json_array_offset_is_rejected"],
+    "tests": [
+      "tests/test_pagination.py::test_invented_json_array_offset_is_rejected"
+    ],
     "result": "pass",
-    "notes": "red->green 关键用例：证明 MCP 预解析会把这个字符串转成真实 list（与真实回传的 next_offset 在 Python 层面无法从类型上区分），必须靠 decode_cursor 的形状校验（首元素须为纯数字，模拟 Chargebee 时间戳游标）拒绝——这条形状校验对真实 Chargebee 返回格式的假设尚未用真实站点验证，见 PRD-17977.md 风险节"
+    "notes": "Key red->green case: proves that MCP pre-parsing turns this string into a real list (indistinguishable by type at the Python level from a genuinely passed-back next_offset), so it must be rejected by the shape check in decode_cursor (the first element must be all digits, simulating a Chargebee timestamp cursor) - the assumption of this shape check about Chargebee's real return format has not yet been verified against a real site, see the Risks section of PRD-17977.md"
   },
   {
     "id": "TC-CBM-014",
     "ac": "AC2",
-    "text": "Given 翻页过程中把另一个工具签发的游标传给本工具（例如把 chargebee_list_invoices 的游标传给 chargebee_list_subscriptions）, When 调用工具, Then 返回 invalid_argument（游标与工具/资源不匹配），不会静默返回错资源的数据或崩溃",
+    "text": "Given a cursor issued by another tool is passed to this tool during paging (for example passing the cursor of chargebee_list_invoices to chargebee_list_subscriptions), When the tool is called, Then it returns invalid_argument (cursor does not match the tool/resource), and neither silently returns data of the wrong resource nor crashes",
     "type": "auto",
-    "tests": ["tests/test_pagination.py::test_cursor_from_a_different_tool_is_rejected"],
+    "tests": [
+      "tests/test_pagination.py::test_cursor_from_a_different_tool_is_rejected"
+    ],
     "result": "pass",
-    "notes": "验证 encode_cursor/decode_cursor 的 resource 标签在跨工具场景下生效"
+    "notes": "Verifies that the resource tag of encode_cursor/decode_cursor takes effect in the cross-tool scenario"
   },
   {
     "id": "TC-CBM-015",
     "ac": "AC6",
-    "text": "Given 同一个不透明游标字符串原样发给另一个租户凭据的请求（模拟跨租户重放该游标）, When 调用工具, Then 请求头决定的站点边界生效，返回新租户凭据对应站点的数据（或该站点下该游标本就无效而报错），绝不返回原租户站点的数据",
+    "text": "Given the same opaque cursor string is sent as-is in a request with another tenant's credentials (simulating cross-tenant replay of that cursor), When the tool is called, Then the site boundary decided by the request headers takes effect, and the data of the site corresponding to the new tenant's credentials is returned (or the cursor is simply invalid under that site and errors), and never the original tenant's site data",
     "type": "auto",
-    "tests": ["tests/test_pagination.py::test_cursor_replayed_under_another_tenant_stays_scoped_to_that_tenant"],
+    "tests": [
+      "tests/test_pagination.py::test_cursor_replayed_under_another_tenant_stays_scoped_to_that_tenant"
+    ],
     "result": "pass",
-    "notes": "用两个独立 FakeClient 模拟两个租户，证明 page_cursor 本身不携带租户信息、client_factory 按当前请求上下文解析，同一游标在另一租户下只会打到该租户自己的 fake client，从未触达前一租户的 client——这是结构性证明，不是对 Chargebee 真实站点隔离行为的端到端验证，端到端仍需 TC-CBM-007"
+    "notes": "Two independent FakeClients simulate two tenants, proving that page_cursor itself carries no tenant information and client_factory resolves per the current request context; the same cursor under another tenant only hits that tenant's own fake client and never reaches the previous tenant's client - this is a structural proof, not end-to-end verification of Chargebee's real site isolation behavior; end-to-end still needs TC-CBM-007"
   }
 ]

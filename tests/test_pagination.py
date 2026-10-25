@@ -10,7 +10,7 @@ see _common.py's cursor codec docstring) is exercised for real, not bypassed.
 Mapping to docs/tickets/PRD-17977.ac.json: TC-CBM-001/002/003/004/005/006/
 008/009/010/013/014/015 (the 12 `type: auto` cases). TC-CBM-007/011/012 are
 `type: manual` and need a real Chargebee test-site — not covered here, see
-the "自测" section of PRD-17977.md.
+the "Self-test" section of PRD-17977.md.
 """
 
 import json

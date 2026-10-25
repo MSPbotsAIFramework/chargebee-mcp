@@ -35,7 +35,7 @@ CUSTOMER_ID_NOTE = (
 
 # ── Pagination cursor codec (PRD-17977) ─────────────────────────────────────
 #
-# Root cause (see docs/tickets/PRD-17977.md "现状"): the MCP layer pre-parses
+# Root cause (see docs/tickets/PRD-17977.md "Current state"): the MCP layer pre-parses
 # any incoming string argument whose declared type isn't exactly `str` — if
 # the string happens to look like JSON, it gets json.loads()'d into a real
 # Python value *before* Pydantic validation runs. Chargebee's own next_offset
@@ -77,7 +77,7 @@ def _looks_like_real_next_offset(value: list) -> bool:
     # nothing). It exists only to tell an actually-round-tripped next_offset
     # apart from an invented 2-element list (TC-CBM-013). Real behavior
     # against a live Chargebee test site is still unverified — see the
-    # "风险" note in docs/tickets/PRD-17977.md; revisit if AC9/AC11 surface a
+    # "Risks" note in docs/tickets/PRD-17977.md; revisit if AC9/AC11 surface a
     # shape this rejects.
     return (
         len(value) == 2
